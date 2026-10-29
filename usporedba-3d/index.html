@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>SPZ 4400 · A i E u 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+body{margin:0}
+/* Radionički pregled: 3D prozor gore, upravljanje i stanje posuda ispod */
+:root{
+  --bg:#eef1f3; --paper:#ffffff; --fg:#1d262c; --muted:#5d6b75; --line:#c9d2d8; --steel:#2f5f86;
+  --ok:#2e8b57; --warn:#c77a12; --bad:#c0392b; --gold:#b8860b;
+  --f-disp:"Barlow Condensed","Arial Narrow",sans-serif; --f-body:"Barlow",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#12181c;--paper:#1a2227;--fg:#e3e9ed;--muted:#93a3ad;--line:#33414a;--steel:#7fb2db;--ok:#5cc58b;--warn:#e9a54a;--bad:#ec7b6e;--gold:#e0b44a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#12181c;--paper:#1a2227;--fg:#e3e9ed;--muted:#93a3ad;--line:#33414a;--steel:#7fb2db;--ok:#5cc58b;--warn:#e9a54a;--bad:#ec7b6e;--gold:#e0b44a;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+h1{font-family:var(--f-disp);font-weight:700;font-size:30px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;max-width:75ch}
+.main{display:grid;gap:12px}
+.side{display:grid;gap:12px;align-content:start;min-width:0}
+.side .ctrl{grid-template-columns:1fr}
+.view{position:sticky;top:0;z-index:5;height:46vh;min-height:260px;box-shadow:0 6px 14px -8px rgba(0,0,0,.35);border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#dfe6ea}
+#c{width:100%;height:100%;display:block;touch-action:none}
+.cam{position:absolute;right:8px;top:8px;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.cam button{background:rgba(255,255,255,.88);color:#1d262c;border:1px solid #b9c4cc;border-radius:5px;padding:4px 9px;font-size:13px}
+.hint{position:absolute;left:10px;bottom:8px;font-size:12px;color:#33424c;background:rgba(255,255,255,.75);padding:2px 7px;border-radius:4px}
+@media (min-width:900px){.main{grid-template-columns:minmax(0,1fr) 360px;align-items:start}.view{top:12px;height:calc(100vh - 24px);max-height:760px}.side{max-height:calc(100vh - 24px);overflow-y:auto;position:sticky;top:12px;padding-right:2px}}
+select.sel{font:inherit;font-size:15px;width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:5px;background:var(--paper);color:var(--fg)}
+.ctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
+.box{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:8px;min-width:0}
+.lbl{font-family:var(--f-disp);font-weight:600;font-size:14px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;cursor:pointer}
+.b{border:1px solid var(--line);background:transparent;color:var(--fg);padding:6px 11px;border-radius:5px;font-size:14px}
+.b[aria-pressed="true"]{background:var(--steel);border-color:var(--steel);color:var(--paper);font-weight:600}
+.b:focus-visible,.cam button:focus-visible{outline:2px solid var(--steel);outline-offset:2px}
+.list{margin:0;padding:0;list-style:none;display:grid;gap:3px;font-size:14px}
+.list li{display:flex;gap:8px;align-items:baseline}
+.dot{width:10px;height:10px;border-radius:2px;flex:none;transform:translateY(1px)}
+.txt{margin:0;font-size:14px}
+.mono{font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+.note{color:var(--muted);font-size:13px;margin:0;max-width:85ch}
+h2{font-family:var(--f-disp);font-weight:700;font-size:24px;margin:8px 0 0}
+.opt{display:grid;gap:4px;padding-top:6px;border-top:1px solid var(--line)}
+</style>
+
+<div class="wrap">
+  <div>
+    <h1>SPZ 4400 · A i E u 3D</h1>
+    <p class="sub">Vrti prstom ili mišem, dva prsta ili kotačić za zum. Odaberi varijantu, raspored (danas ili s još jednom kantom) i stanje vrata; „Izvuci” pokazuje što ide van ravno.</p>
+  </div>
+
+  <div class="main">
+  <div class="view">
+    <canvas id="c" aria-label="3D prikaz spremišta"></canvas>
+    <div class="cam">
+      <button id="cam-34">3/4</button><button id="cam-front">Sprijeda</button><button id="cam-top">Odozgo</button><button id="cam-roof">Krov</button>
+    </div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="side">
+  <div class="ctrl">
+    <div class="box"><span class="lbl">Varijanta</span><div class="row" id="g-var"></div>
+      <span class="lbl">Raspored</span><div class="row" id="g-sc"></div></div>
+    <div class="box"><span class="lbl">Vrata</span><div class="row" id="g-st"></div>
+      <div class="row"><button class="b" id="pull" aria-pressed="false">Izvuci što ide ravno</button></div></div>
+    <div class="box"><span class="lbl">Zaključavanje</span><div class="row" id="g-lock"></div><p class="txt" id="locktxt"></p></div>
+  </div>
+
+  <div class="ctrl">
+    <div class="box"><span class="lbl">Posude u ovom stanju</span><ul class="list" id="list"></ul></div>
+    <div class="box"><span class="lbl">Prednosti i mane</span><ul class="list" id="verdict"></ul></div>
+  </div>
+  </div>
+  </div>
+  <p class="note">Mjere u mm. Kosina 2,6° nije prikazana jer ne mijenja raspored ni rad vrata. Krila su izvana, ispred stupova; zlatno su označene točke zaključavanja. Unutarnja dubina ≈1320 i vreća Ø330 su pretpostavke. Prikazani su svi rasporedi koji rade; zakrenuti kontejneri i zakrenute kante provjereni su, a što ne stane piše na dnu. Kante uvijek stoje straga, slobodan prostor je uz vrata.</p>
+  <h2>Svi rasporedi · prednosti i mane</h2>
+  <div class="ctrl" id="all"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+// ---------- podaci ----------
+const KW=1370,KD=1190,KH=1330, H=2000;
+const POSTS={A:[0,1400,4320],E:[0,2160,4320]}, REAR=[0,2160,4320];
+const WINGS={
+  A:[{w:1400,o:{zat:40,kont:40,mali:1400}},{w:1480,o:{zat:1440,kont:0,mali:1440}},{w:1480,o:{zat:2880,kont:0,mali:2880}}],
+  E:[{w:2160,o:{zat:40,lijevo:2200,desno:40}},{w:2160,o:{zat:2200,lijevo:2200,desno:40}}]};
+const STATES={A:[['zat','Zatvoreno'],['kont','Otvori kontejnere'],['mali','Otvori kantu i vreće']],
+              E:[['zat','Zatvoreno'],['lijevo','Otvori lijevu polovicu'],['desno','Otvori desnu polovicu']]};
+const LOCKS={A:[['A1','2 brave · isti ključ']],E:[['EB','1 brava · srednji stup']]};
+const LOCKTXT={
+  A1:'Dvije gotove brave s kukom za klizna vrata, cilindri s istim ključem: lijevo krilo kod stupa 1400, krilo B kod stupa 4320. B drži i srednje krilo jer ga vuče u oba smjera. Bez vlastitog mehanizma.',
+  A2:'Ručica s cilindrom na srednjem krilu okreće šipku ≈1,4 m: zahvat u lijevo krilo kod stupa 1400 i u krilo B. Krilo B drži srednje krilo, pa su zaključana sva tri. Jedan ključ, jedna brava.',
+  EB:'Oba krila se zatvaraju na srednjem stupu. Brava s kukom na vanjskom krilu, zasun prolazi kroz unutarnje krilo u prihvat na stupu. Jedan ključ, jedna brava.',
+  EL:'Tri ušice u liniji: stup, lijevo i desno krilo. Jedan lokot kroz sve tri.'};
+const K=(id,x,z)=>({t:'K',id,x,z,w:KW,d:KD,h:KH});
+const KA=(id,x,z,rot)=>rot?({t:'KA',id,x,z,w:740,d:580,h:1070}):({t:'KA',id,x,z,w:580,d:740,h:1070});
+const V=(id,cx,cz)=>({t:'V',id,x:cx-165,z:cz-165,w:330,d:330,h:650});
+const B2='Dvije brave (isti ključ) umjesto jedne', B1='Jedna gotova brava na srednjem stupu', ST='Prednji srednji stup se seli 1400 → 2160';
+const LAY={
+ A:[
+  {name:'Danas · kanta zakrenuta uz zid',items:[K('K1',1513,60),K('K2',2916,60),KA('KA',90,60,1),V('V1',260,1080),V('V2',660,1080),V('V3',1060,1080),V('V4',1115,330)],
+   plus:['Ručke uz bok, poklopac se otvara prema unutra','Uz vrata traka ≈720 za 3 vreće i prolaz, 4. vreća uz stup 1400','Oba kontejnera izlaze odjednom, kanta i vreće iza svojih vrata','Kostur ostaje kako je izrezan'],
+   minus:['Kantu kod pražnjenja treba izvući pa okrenuti','Kontejneri u otvoru ≈30 sa strane',B2]},
+  {name:'Danas · kanta zakrenuta uz stup 1400',items:[K('K1',1513,60),K('K2',2916,60),KA('KA',650,60,1),V('V1',260,1080),V('V2',660,1080),V('V3',1060,1080),V('V4',260,330)],
+   plus:['Ručke uz bok, poklopac se otvara prema unutra','4 vreće: 3 uz vrata, 1 uz lijevi zid','Oba kontejnera izlaze odjednom'],
+   minus:['Kantu kod pražnjenja treba izvući pa okrenuti','Vreća uz zid straga vadi se rukom preko prednjih','Kontejneri u otvoru ≈30 sa strane',B2]},
+  {name:'Danas · kanta ravno uz zid',items:[K('K1',1513,60),K('K2',2916,60),KA('KA',90,60),V('V1',900,330),V('V2',900,900),V('V3',380,1080)],
+   plus:['Kanta izlazi ravno, bez okretanja','Uz kantu traka ≈730 cijelom dubinom za vreće','Oba kontejnera izlaze odjednom'],
+   minus:['Ručke kante prema stražnjoj strani, komunalac hvata za rub','Kontejneri u otvoru ≈30 sa strane',B2]},
+  {name:'Danas · kanta ravno uz stup 1400',items:[K('K1',1513,60),K('K2',2916,60),KA('KA',810,60),V('V1',400,330),V('V2',400,900),V('V3',1100,1080)],
+   plus:['Kanta izlazi ravno, bez okretanja','Uz lijevi zid traka ≈730 cijelom dubinom za vreće','Oba kontejnera izlaze odjednom'],
+   minus:['Ručke kante prema stražnjoj strani','Kanta uz stup: pri izvlačenju ≈10 do stupa','Kontejneri u otvoru ≈30 sa strane',B2]},
+  {name:'+1 kanta · obje ravno straga',items:[KA('KA1',100,60),KA('KA2',720,60),V('V1',390,1080),V('V2',1010,1080),K('K1',1513,60),K('K2',2916,60)],
+   plus:['Obje kante straga, izlaze ravno kroz lijeva vrata','Kontejneri se ne diraju','Bez prepravke kostura'],
+   minus:['Uz kante ostaje samo 160 viška','Vreće samo u traci ≈560 uz vrata','Ručke kanti prema stražnjoj strani',B2]}
+ ],
+ E:[
+  {name:'Danas · kanta lijevo uz zid',items:[KA('KA',123,60),K('K1',746,60),K('K2',2270,60),V('V1',413,1080),V('V2',3980,330),V('V3',3980,900)],
+   plus:['Kanta izlazi ravno','K2 sam u desnoj polovici, vreće uz njega (maknu se rukom)',B1],
+   minus:['K1 između kante i stupa: ≈40 sa svake strane','Kanta iza istih vrata kao K1, vreće iza vrata K2','Otvara se jedna polovica po jedna',ST]},
+  {name:'Danas · kanta lijevo uz stup',items:[K('K1',123,60),KA('KA',1536,60),K('K2',2270,60),V('V1',1826,1080),V('V2',3980,330),V('V3',3980,900)],
+   plus:['Kanta izlazi ravno','K1 uz zid, kanta uz srednji stup',B1],
+   minus:['K1 između zida i kante: ≈40 sa svake strane','Kanta iza istih vrata kao K1','Otvara se jedna polovica po jedna',ST]},
+  {name:'Danas · kanta desno uz zid',items:[K('K1',750,60),V('V1',415,330),V('V2',415,900),K('K2',2283,60),KA('KA',3696,60),V('V3',3986,1080)],
+   plus:['Kanta izlazi ravno','Vreće lijevo uz K1, kanta desno uz K2',B1],
+   minus:['K2 između stupa i kante: ≈40 sa svake strane','Za vreće i za kantu otvaraju se različite polovice','Otvara se jedna polovica po jedna',ST]},
+  {name:'Danas · kanta desno uz stup',items:[K('K1',750,60),V('V1',415,330),V('V2',415,900),KA('KA',2283,60),K('K2',2906,60),V('V3',2573,1080)],
+   plus:['Kanta izlazi ravno','Kanta uz srednji stup, K2 uz desni zid',B1],
+   minus:['K2 između kante i zida: ≈40 sa svake strane','Za vreće i za kantu otvaraju se različite polovice','Otvara se jedna polovica po jedna',ST]},
+  {name:'+1 kanta · obje uz zid',items:[KA('KA1',123,60),K('K1',746,60),K('K2',2283,60),KA('KA2',3696,60),V('V1',413,1080),V('V2',3986,1080)],
+   plus:['Obje kante straga i izlaze ravno','Simetrično',B1],
+   minus:['Oba kontejnera uz kantu: ≈40 sa svake strane','Za sitni otpad otvaraju se obje polovice','Vreće samo ispred kanti, 1 po polovici',ST]},
+  {name:'+1 kanta · obje uz srednji stup',items:[K('K1',123,60),KA('KA1',1536,60),KA('KA2',2283,60),K('K2',2906,60),V('V1',1826,1080),V('V2',2573,1080)],
+   plus:['Obje kante straga i izlaze ravno','Kante na sredini, blizu jedna drugoj',B1],
+   minus:['Oba kontejnera uz kantu: ≈40 sa svake strane','Za sitni otpad otvaraju se obje polovice','Vreće samo ispred kanti, 1 po polovici',ST]},
+  {name:'+1 kanta · lijeva uz zid, desna uz stup',items:[KA('KA1',123,60),K('K1',746,60),KA('KA2',2283,60),K('K2',2906,60),V('V1',413,1080),V('V2',2573,1080)],
+   plus:['Obje kante straga i izlaze ravno',B1],
+   minus:['Oba kontejnera uz kantu: ≈40 sa svake strane','Za sitni otpad otvaraju se obje polovice','Vreće samo ispred kanti, 1 po polovici',ST]},
+  {name:'+1 kanta · lijeva uz stup, desna uz zid',items:[K('K1',123,60),KA('KA1',1536,60),K('K2',2283,60),KA('KA2',3696,60),V('V1',1826,1080),V('V2',3986,1080)],
+   plus:['Obje kante straga i izlaze ravno',B1],
+   minus:['Oba kontejnera uz kantu: ≈40 sa svake strane','Za sitni otpad otvaraju se obje polovice','Vreće samo ispred kanti, 1 po polovici',ST]}
+ ]};
+const NOFIT={A:['Kontejner zakrenut (1190 × 1370): 1370 je dublje od unutarnjih ≈1320, ne stane','Kanta u desnom otvoru uz kontejnere: 2 × 1370 + 580 = 3320, otvor ima 2840','Kante jedna iza druge: prednja zatvara prostor uz vrata, odbačeno','+1 kanta: jedna ravno i jedna zakrenuta = 1320, bez ikakvog zazora; obje zakrenute = 1480, ne stane'],
+ E:['Kontejner zakrenut (1190 × 1370): 1370 je dublje od unutarnjih ≈1320, ne stane','Kanta zakrenuta uz kontejner: 1370 + 740 = 2110, polovica ima 2080','Obje kante u istoj polovici: 2 × 580 + 1370 = 2530, ne stane','Oba kontejnera u istoj polovici: 2740, ne stane']};
+
+function freeSpans(v,st){
+  const blk=POSTS[v].map(x=>[x,x+80]).concat(WINGS[v].map(k=>[k.o[st],k.o[st]+k.w]));
+  blk.sort((a,b)=>a[0]-b[0]); const fr=[];let cur=0;
+  for(const [a,b] of blk){ if(a>cur) fr.push([cur,a]); cur=Math.max(cur,b); }
+  if(cur<4400) fr.push([cur,4400]);
+  return fr.filter(([a,b])=>b-a>5);
+}
+function status(it,items,fr,st){
+  if(st==='zat') return {c:'none',txt:'zatvoreno'};
+  const ov=(a,b)=>a.x<b.x+b.w-1&&b.x<a.x+a.w-1;
+  const front=items.filter(o=>o!==it&&o.t!=='V'&&o.z>=it.z+it.d-1&&ov(o,it));
+  if(front.length) return {c:'bad',txt:'ispred je '+front.map(o=>o.id).join(', ')};
+  if(fr.some(([a,b])=>a<=it.x+1&&it.x+it.w<=b+1)) return {c:'ok',txt:'izlazi ravno'};
+  let best=null,dir=0;
+  for(const [a,b] of fr){ if(b-a<it.w) continue;
+    const s=it.x<a?a-it.x:(it.x+it.w>b?it.x+it.w-b:0); if(best===null||s<best){best=s;dir=it.x<a?1:-1;} }
+  if(best===null) return {c:'bad',txt:'otvor premalen'};
+  const x0=dir>0?it.x:it.x-best,x1=dir>0?it.x+it.w+best:it.x+it.w;
+  const inWay=items.filter(o=>o!==it&&o.x<x1-1&&x0<o.x+o.w-1&&o.z<it.z+it.d&&it.z<o.z+o.d);
+  return {c:'warn',txt:'pomak '+(dir>0?'desno ':'lijevo ')+Math.round(best)+' mm'+(inWay.length?' kad izađe '+inWay.map(o=>o.id).join(', '):'')};
+}
+
+// ---------- scena ----------
+const cv=document.getElementById('c');
+const R=new THREE.WebGLRenderer({canvas:cv,antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene(); S.background=new THREE.Color(0xdfe6ea);
+const C=new THREE.PerspectiveCamera(40,1,20,60000);
+const OC=new THREE.OrbitControls(C,cv); OC.enableDamping=true; OC.target.set(2200,700,700);
+S.add(new THREE.HemisphereLight(0xffffff,0x8a9399,0.85));
+const sun=new THREE.DirectionalLight(0xffffff,0.6); sun.position.set(3000,6000,6000); S.add(sun);
+const M=(c,o={})=>new THREE.MeshLambertMaterial(Object.assign({color:c},o));
+const box=(w,h,d,mat,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x+w/2,y+h/2,z+d/2);return m;};
+const mPost=M(0x3a4a55), mWing=M(0x2f5f86), mRail=M(0x777f86), mGold=M(0xd4a017), mGround=M(0x9aa3a8), mCurb=M(0xb9bec2);
+function meshTex(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
+  g.strokeStyle='rgba(40,55,65,.9)';g.lineWidth=3;g.strokeRect(0,0,64,64);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+const MT=meshTex();
+function meshPlane(w,h,axis){const t=MT.clone();t.needsUpdate=true;t.repeat.set(w/80,h/80);
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:t,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false}));return m;}
+function label(txt,col='#1d262c'){const c=document.createElement('canvas');c.width=256;c.height=96;const g=c.getContext('2d');
+  g.fillStyle='rgba(255,255,255,.9)';g.fillRect(0,0,256,96);g.fillStyle=col;g.font='bold 56px Barlow Condensed, Arial Narrow, sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(txt,128,50);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));s.scale.set(380,142,1);return s;}
+
+// statični dio: tlo, rubnjak
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(14000,9000),mGround); ground.rotation.x=-Math.PI/2; ground.position.set(2200,-1,1500); S.add(ground);
+S.add(box(9000,150,150,mCurb,-2300,0,-250));
+
+let dyn=new THREE.Group(); S.add(dyn);
+let roof=null, wingObjs=[], itemObjs=[];
+let cfg={v:'A',sc:0,st:'zat',lock:'A1',pull:false};
+
+function build(){
+  S.remove(dyn); dyn=new THREE.Group(); S.add(dyn); wingObjs=[]; itemObjs=[];
+  const v=cfg.v;
+  // stupovi
+  for(const x of POSTS[v]) dyn.add(box(80,H,40,mPost,x,0,1360));
+  for(const x of REAR) dyn.add(box(80,H,40,mPost,x,0,0));
+  // gornje grede, bočne grede
+  dyn.add(box(4400,80,40,mPost,0,H,1360)); dyn.add(box(4400,80,40,mPost,0,H,0));
+  for(const x of [0,4320]) dyn.add(box(80,40,1320,mPost,x,H+20,40));
+  // mreže straga i bočno
+  const back=meshPlane(4400,H); back.position.set(2200,H/2,-15); dyn.add(back);
+  for(const x of [-15,4415]){const s=meshPlane(1400,H); s.rotation.y=Math.PI/2; s.position.set(x,H/2,700); dyn.add(s);}
+  // krov
+  roof=new THREE.Mesh(new THREE.BoxGeometry(4500,20,1950),new THREE.MeshLambertMaterial({color:0x8d99a3,transparent:true,opacity:.35,depthWrite:false}));
+  roof.position.set(2200,H+120,880); roof.visible=roofOn; dyn.add(roof);
+  // podna vodilica ispred
+  const rail=new THREE.Mesh(new THREE.CylinderGeometry(10,10,4500,10),mRail); rail.rotation.z=Math.PI/2; rail.position.set(2200,10,1450); dyn.add(rail);
+  // fiksne ušice/prihvati na stupovima
+  if(v==='E'){ dyn.add(box(40,60,110,mGold,2180,980,1400)); }
+  if(v==='A'&&cfg.lock==='A1'){ dyn.add(box(40,60,60,mGold,1420,980,1400)); dyn.add(box(40,60,60,mGold,4330,980,1400)); }
+  if(v==='A'&&cfg.lock==='A2'){ dyn.add(box(40,60,60,mGold,1420,980,1400)); }
+  // krila
+  WINGS[v].forEach((k,i)=>{
+    const g=new THREE.Group(); const z=1410+i*34, t=24;
+    g.add(box(k.w,40,t,mWing,0,40,0)); g.add(box(k.w,40,t,mWing,0,1880,0));
+    g.add(box(40,1880,t,mWing,0,40,0)); g.add(box(40,1880,t,mWing,k.w-40,40,0));
+    const mp=meshPlane(k.w-80,1800); mp.position.set(k.w/2,980,t/2); g.add(mp);
+    // kotači
+    for(const xx of [150,k.w-150]){const w=new THREE.Mesh(new THREE.CylinderGeometry(40,40,20,16),mRail);w.rotation.x=Math.PI/2;w.position.set(xx,40,t/2);g.add(w);}
+    // brave na krilima
+    if(v==='E'){
+      if(cfg.lock==='EL'){ g.add(box(40,60,110-(z-1400),mGold,i===0?k.w-60:20,980,t)); if(i===1){const lk=box(70,90,40,mGold,-15,890,110-(z-1400)+t);g.add(lk);} }
+      else if(i===1){ g.add(box(90,220,50,mGold,10,900,t)); }
+    }
+    if(v==='A'&&cfg.lock==='A1'){ if(i===0) g.add(box(90,220,50,mGold,k.w-110,900,t)); if(i===2) g.add(box(90,220,50,mGold,k.w-110,900,t)); }
+    if(v==='A'&&cfg.lock==='A2'&&i===1){
+      const rod=new THREE.Mesh(new THREE.CylinderGeometry(10,10,k.w+40,10),mGold); rod.rotation.z=Math.PI/2; rod.position.set(k.w/2,1000,t+20); g.add(rod);
+      g.add(box(60,260,40,mGold,k.w/2-30,870,t+20)); g.add(box(30,80,60,mGold,-20,960,t)); g.add(box(30,80,60,mGold,k.w-10,960,t));
+    }
+    g.position.set(k.o.zat,0,z); g.userData={k,cur:k.o.zat}; dyn.add(g); wingObjs.push(g);
+  });
+  // posude
+  const items=LAY[v][cfg.sc].items;
+  for(const it of items){
+    const g=new THREE.Group(); let body;
+    if(it.t==='V'){ body=new THREE.Mesh(new THREE.CylinderGeometry(150,165,it.h,16),M(0x2b2b2b)); body.position.set(it.w/2,it.h/2,it.d/2); }
+    else { body=box(it.w,it.h,it.d,M(it.t==='K'?0x5f7f5f:0x8a6a3a),0,0,0);
+      const lid=box(it.w+20,40,it.d+20,M(0x3d4d3d),-10,it.h,-10); g.add(lid); }
+    g.add(body); const lb=label(it.id); lb.position.set(it.w/2,it.h+260,it.d/2); g.add(lb);
+    g.position.set(it.x,0,it.z); g.userData={it,body,z0:it.z,zt:it.z}; dyn.add(g); itemObjs.push(g);
+  }
+  refresh();
+}
+const COL={ok:0x2e8b57,warn:0xd18a1c,bad:0xc0392b};
+function refresh(){
+  const v=cfg.v, lay=LAY[v][cfg.sc], items=lay.items, fr=freeSpans(v,cfg.st);
+  wingObjs.forEach(g=>g.userData.target=g.userData.k.o[cfg.st]);
+  const L=document.getElementById('list'); L.innerHTML='';
+  const NAMES={K:'kontejner 1100 L',KA:'kanta 240 L',V:'vreća'};
+  itemObjs.forEach(g=>{const it=g.userData.it; const r=status(it,items,fr,cfg.st);
+    const base=it.t==='K'?0x5f7f5f:it.t==='KA'?0x8a6a3a:0x2b2b2b;
+    g.userData.body.material.color.setHex(r.c in COL?COL[r.c]:base);
+    g.userData.zt=(cfg.pull&&r.c==='ok')?it.z+1700:it.z;
+    const c=r.c==='ok'?'var(--ok)':r.c==='warn'?'var(--warn)':r.c==='bad'?'var(--bad)':'var(--line)';
+    L.insertAdjacentHTML('beforeend',`<li><i class="dot" style="background:${c}"></i><span><b>${it.id}</b> ${NAMES[it.t]} · ${r.txt}</span></li>`);});
+  const open=fr.map(([a,b])=>Math.round(b-a)).filter(x=>x>200);
+  document.getElementById('hint').textContent=cfg.st==='zat'?'Zatvoreno i zaključano':'Otvor: '+open.join(' + ')+' mm';
+  document.getElementById('verdict').innerHTML=pm(lay);
+  document.getElementById('locktxt').textContent=LOCKTXT[cfg.lock];
+}
+// ---------- upravljanje ----------
+function group(id,opts,key,onset){
+  const el=document.getElementById(id);
+  el.innerHTML=opts.map(([k,n])=>`<button class="b" id="${id}-${k}" data-k="${k}" aria-pressed="${String(cfg[key])===String(k)}">${n}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;let k=b.dataset.k;if(key==='sc')k=+k;cfg[key]=k;onset();};
+}
+function ui(){
+  group('g-var',[['A','A · 3 krila'],['E','E · stup u sredini']],'v',()=>{cfg.st='zat';cfg.sc=0;cfg.lock=LOCKS[cfg.v][0][0];cfg.pull=false;ui();build();});
+  group('g-sc',LAY[cfg.v].map((s,i)=>[i,s.name]),'sc',()=>{cfg.pull=false;ui();build();});
+  group('g-st',STATES[cfg.v],'st',()=>{cfg.pull=false;ui();refresh();});
+  group('g-lock',LOCKS[cfg.v],'lock',()=>{ui();build();});
+  const p=document.getElementById('pull'); p.setAttribute('aria-pressed',cfg.pull); p.disabled=cfg.st==='zat'; p.style.opacity=cfg.st==='zat'?.45:1;
+}
+document.getElementById('pull').onclick=()=>{if(cfg.st==='zat')return;cfg.pull=!cfg.pull;ui();refresh();};
+let roofOn=true;
+// pogled stane u prozor i na uskom ekranu: udaljenost se povećava dok širina 5800 ne stane
+let lastView=null;
+const camTo=(p,t)=>{lastView=[p,t];const dir=new THREE.Vector3(p[0]-t[0],p[1]-t[1],p[2]-t[2]);
+  const need=2900/(Math.tan(THREE.MathUtils.degToRad(C.fov/2))*Math.max(C.aspect,.2));
+  dir.setLength(Math.max(dir.length(),need));C.position.set(t[0]+dir.x,t[1]+dir.y,t[2]+dir.z);OC.target.set(...t);OC.update();};
+document.getElementById('cam-34').onclick=()=>camTo([-1800,3600,6800],[2200,700,800]);
+document.getElementById('cam-front').onclick=()=>camTo([2200,1100,7600],[2200,900,700]);
+document.getElementById('cam-top').onclick=()=>camTo([2200,8200,1400],[2200,0,1000]);
+document.getElementById('cam-roof').onclick=()=>{roofOn=!roofOn;if(roof)roof.visible=roofOn;};
+camTo([-1800,3600,6800],[2200,700,800]);
+
+function resize(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);C.aspect=w/h;C.updateProjectionMatrix();}
+addEventListener('resize',resize);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function tick(){
+  wingObjs.forEach(g=>{const d=g.userData.target-g.position.x; g.position.x+= reduce?d:d*0.12;});
+  itemObjs.forEach(g=>{const d=g.userData.zt-g.position.z; g.position.z+= reduce?d:d*0.08;});
+  OC.update(); R.render(S,C); requestAnimationFrame(tick);
+}
+function pm(l){return l.plus.map(p=>`<li><i class="dot" style="background:var(--ok)"></i><span>+ ${p}</span></li>`).join('')+l.minus.map(p=>`<li><i class="dot" style="background:var(--bad)"></i><span>− ${p}</span></li>`).join('');}
+document.getElementById('all').innerHTML=['A','E'].map(v=>`<div class="box"><span class="lbl">${v==='A'?'A · 3 krila':'E · stup u sredini'}</span>`+LAY[v].map(l=>`<div class="opt"><b>${l.name}</b><ul class="list">${pm(l)}</ul></div>`).join('')+`<div class="opt"><b>Ne stane ili odbačeno</b><ul class="list">${NOFIT[v].map(t=>`<li><i class="dot" style="background:var(--line)"></i><span>${t}</span></li>`).join('')}</ul></div></div>`).join('');
+ui(); build(); resize(); camTo(...lastView); tick();
+</script>
